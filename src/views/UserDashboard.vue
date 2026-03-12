@@ -187,7 +187,7 @@ const handleLogout = () => {
 const requestAccess = async () => {
   isLoading.value = true;
   try {
-    const res = await axios.post('http://localhost:3000/api/request-permission', {
+    const res = await axios.post('https://inventory-management-di.onrender.com/api/request-permission', {
       userId: currentUserId.value,
       userName: currentUserName.value 
     });
