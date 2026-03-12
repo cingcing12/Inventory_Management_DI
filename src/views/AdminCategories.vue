@@ -19,17 +19,18 @@
           
           <div class="flex items-center gap-3 mb-6">
             <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+              <svg v-if="!isEditing" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+              <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
             </div>
-            <h3 class="text-xl font-bold text-slate-800">New Category</h3>
+            <h3 class="text-xl font-bold text-slate-800">{{ isEditing ? 'Edit Category' : 'New Category' }}</h3>
           </div>
 
-          <form @submit.prevent="addCategory" class="space-y-5">
+          <form @submit.prevent="submitForm" class="space-y-5">
             <div>
               <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Category Name</label>
               <div class="relative">
                 <input 
-                  v-model="newCategoryName" 
+                  v-model="categoryFormName" 
                   type="text" 
                   placeholder="e.g., Motherboards"
                   class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:border-transparent transition-all duration-200 placeholder:text-slate-400"
@@ -42,14 +43,26 @@
               </div>
             </div>
             
-            <button 
-              type="submit" 
-              class="w-full relative flex justify-center items-center py-3.5 px-4 rounded-xl text-white font-bold text-sm bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg shadow-indigo-500/30 disabled:opacity-70 disabled:cursor-not-allowed group"
-              :disabled="isSubmitting"
-            >
-              <svg v-if="isSubmitting" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-              <span v-else>Create Category</span>
-            </button>
+            <div class="flex gap-3">
+              <button 
+                v-if="isEditing"
+                type="button"
+                @click="cancelEdit"
+                class="flex-1 py-3.5 px-4 rounded-xl text-slate-600 font-bold text-sm bg-slate-100 hover:bg-slate-200 transition-all duration-200"
+                :disabled="isSubmitting"
+              >
+                Cancel
+              </button>
+
+              <button 
+                type="submit" 
+                class="flex-[2] relative flex justify-center items-center py-3.5 px-4 rounded-xl text-white font-bold text-sm bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg shadow-indigo-500/30 disabled:opacity-70 disabled:cursor-not-allowed group"
+                :disabled="isSubmitting"
+              >
+                <svg v-if="isSubmitting" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <span v-else>{{ isEditing ? 'Update Category' : 'Create Category' }}</span>
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -80,7 +93,7 @@
                       </div>
                     </td>
                     <td class="px-8 py-5"><div class="h-6 bg-slate-100 rounded-md w-40 mx-auto"></div></td>
-                    <td class="px-8 py-5"><div class="h-8 bg-slate-200 rounded-lg w-8 ml-auto"></div></td>
+                    <td class="px-8 py-5"><div class="h-8 bg-slate-200 rounded-lg w-16 ml-auto"></div></td>
                   </tr>
                 </template>
 
@@ -94,13 +107,13 @@
                   </td>
                 </tr>
 
-                <tr v-else v-for="category in categories" :key="category.id" class="hover:bg-slate-50/50 transition-colors group">
+                <tr v-else v-for="category in categories" :key="category.id" class="hover:bg-slate-50/50 transition-colors group" :class="{'bg-indigo-50/50': editingId === category.id}">
                   <td class="px-8 py-5">
                     <div class="flex items-center gap-4">
-                      <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200 group-hover:bg-indigo-50 group-hover:text-indigo-600 group-hover:border-indigo-100 transition-colors">
+                      <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200 group-hover:bg-indigo-50 group-hover:text-indigo-600 group-hover:border-indigo-100 transition-colors" :class="{'!bg-indigo-50 !text-indigo-600 !border-indigo-100': editingId === category.id}">
                         <span class="font-black text-sm">{{ category.name.charAt(0).toUpperCase() }}</span>
                       </div>
-                      <span class="text-sm font-bold text-slate-800">{{ category.name }}</span>
+                      <span class="text-sm font-bold text-slate-800" :class="{'text-indigo-700': editingId === category.id}">{{ category.name }}</span>
                     </div>
                   </td>
                   
@@ -111,13 +124,23 @@
                   </td>
                   
                   <td class="px-8 py-5 text-right">
-                    <button 
-                      @click="openDeleteModal(category.id)" 
-                      class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-white hover:bg-rose-500 hover:shadow-lg hover:shadow-rose-500/30 transition-all focus:outline-none"
-                      title="Delete Category"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
+                    <div class="flex justify-end gap-2">
+                      <button 
+                        @click="startEdit(category)" 
+                        class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border hover:border-indigo-100 transition-all focus:outline-none"
+                        title="Edit Category"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                      </button>
+
+                      <button 
+                        @click="openDeleteModal(category.id)" 
+                        class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-white hover:bg-rose-500 hover:shadow-lg hover:shadow-rose-500/30 transition-all focus:outline-none"
+                        title="Delete Category"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -161,26 +184,29 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { db } from '../firebase';
-import { collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+// Imported updateDoc so we can edit!
+import { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy } from 'firebase/firestore';
 import CustomAlert from '../components/CustomAlert.vue';
 
 // Reactive state
 const categories = ref([]);
-const newCategoryName = ref('');
+const categoryFormName = ref('');
 const isSubmitting = ref(false);
 const isLoading = ref(true);
 const notification = ref({ show: false, message: '', type: 'success' });
+
+// Edit State
+const isEditing = ref(false);
+const editingId = ref(null);
 
 // Modal State
 const isDeleteModalOpen = ref(false);
 const categoryToDelete = ref(null);
 const isDeleting = ref(false);
 
-// Reference to the 'categories' collection
 const categoriesCollection = collection(db, 'categories');
-
 let unsubscribe = null;
 
 onMounted(() => {
@@ -191,7 +217,6 @@ onMounted(() => {
       id: doc.id,
       ...doc.data()
     }));
-    // Turn off skeleton loaders smoothly
     setTimeout(() => { isLoading.value = false; }, 400);
   });
 });
@@ -200,38 +225,65 @@ onUnmounted(() => {
   if (unsubscribe) unsubscribe();
 });
 
-// Helper for notifications
 const showNotification = (message, type = 'success') => {
   notification.value = { show: true, message, type };
-  setTimeout(() => {
-    notification.value.show = false;
-  }, 3000);
+  setTimeout(() => { notification.value.show = false; }, 3000);
 };
 
-// Create Data
-const addCategory = async () => {
-  if (!newCategoryName.value.trim()) {
+// --- FORM LOGIC (Handles both Create & Update) ---
+const submitForm = async () => {
+  if (!categoryFormName.value.trim()) {
     showNotification('Category name cannot be empty.', 'error');
     return;
   }
   
   isSubmitting.value = true;
+  
   try {
-    await addDoc(categoriesCollection, {
-      name: newCategoryName.value.trim()
-    });
-    newCategoryName.value = ''; 
-    showNotification('Category successfully created!');
+    if (isEditing.value && editingId.value) {
+      // UPDATE EXISTING CATEGORY
+      const categoryRef = doc(db, 'categories', editingId.value);
+      await updateDoc(categoryRef, {
+        name: categoryFormName.value.trim()
+      });
+      showNotification('Category updated successfully!');
+      cancelEdit(); // Reset form back to Create mode
+    } else {
+      // CREATE NEW CATEGORY
+      await addDoc(categoriesCollection, {
+        name: categoryFormName.value.trim()
+      });
+      categoryFormName.value = ''; 
+      showNotification('Category successfully created!');
+    }
   } catch (error) {
-    console.error("Error adding category: ", error);
-    showNotification('Failed to create category.', 'error');
+    console.error("Error saving category: ", error);
+    showNotification(isEditing.value ? 'Failed to update category.' : 'Failed to create category.', 'error');
   } finally {
     isSubmitting.value = false;
   }
 };
 
+// Edit Control Functions
+const startEdit = (category) => {
+  isEditing.value = true;
+  editingId.value = category.id;
+  categoryFormName.value = category.name;
+  // Scroll to top so they see the form
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+const cancelEdit = () => {
+  isEditing.value = false;
+  editingId.value = null;
+  categoryFormName.value = '';
+};
+
 // Custom Modal Delete Logic
 const openDeleteModal = (id) => {
+  // If they are currently editing the one they want to delete, cancel the edit first
+  if (editingId.value === id) cancelEdit();
+  
   categoryToDelete.value = id;
   isDeleteModalOpen.value = true;
 };
@@ -260,7 +312,6 @@ const confirmDelete = async () => {
 </script>
 
 <style scoped>
-/* Modal animation (Scale and fade in) */
 .fade-scale-enter-active,
 .fade-scale-leave-active {
   transition: opacity 0.3s ease, transform 0.3s ease;
