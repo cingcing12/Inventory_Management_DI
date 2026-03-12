@@ -26,20 +26,19 @@ const routes = [
   {
     path: '/admin',
     component: AdminLayout,
-    // These 'children' will render inside the <router-view> of AdminLayout.vue!
     children: [
       {
-        path: 'dashboard', // URL will be /admin/dashboard
+        path: 'dashboard', 
         name: 'AdminDashboard',
         component: AdminDashboard
       },
       {
-        path: 'categories', // URL will be /admin/categories
+        path: 'categories', 
         name: 'AdminCategories',
         component: AdminCategories
       },
       {
-        path: 'stock', // URL will be /admin/stock
+        path: 'stock', 
         name: 'AdminStock',
         component: AdminStock
       },
@@ -49,24 +48,22 @@ const routes = [
         component: AdminUsers
       },
       {
-  path: 'logs', // URL will be /admin/logs
-  name: 'AdminBrokenLogs',
-  component: AdminBrokenLogs
-}
+        path: 'logs', 
+        name: 'AdminBrokenLogs',
+        component: AdminBrokenLogs
+      }
     ]
   }
 ]
 
-// 3. Create the Router Instance
+// 3. Create the Router Instance (Clean URLs without #)
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes
 })
 
-// 4. (Bonus) Simple Navigation Guard to protect the Admin Panel
+// 4. Simple Navigation Guard
 router.beforeEach((to, from, next) => {
-  // In a fully finished app, you would check localStorage or Firebase Auth here
-  // to see if the user has the "admin" role. 
   const userRole = localStorage.getItem('userRole');
   
   if (to.path.startsWith('/admin') && userRole !== 'admin') {
@@ -74,8 +71,7 @@ router.beforeEach((to, from, next) => {
   } else {
     next(); // Let them pass
   }
-  
-  next(); // For now, we allow all navigation to test the UI easily
+  // (Removed the duplicate next() from down here so your app doesn't crash!)
 })
 
-export default router   
+export default router

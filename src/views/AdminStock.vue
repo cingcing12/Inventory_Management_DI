@@ -4,7 +4,7 @@
     <div class="flex items-center justify-between mb-8">
       <div>
         <h2 class="text-3xl font-black text-slate-800 tracking-tight">Manage Stock & Usage</h2>
-        <p class="text-sm font-medium text-slate-500 mt-1">Independent records for your incoming items and outgoing usage.</p>
+        <p class="text-sm font-medium text-slate-500 mt-1">Independent records for your incoming items, usage, and broken stock.</p>
       </div>
     </div>
 
@@ -14,16 +14,20 @@
         
         <div class="bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 md:p-8 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] relative overflow-hidden">
           
-          <div class="absolute top-0 right-0 w-40 h-40 rounded-full mix-blend-multiply filter blur-3xl opacity-50 pointer-events-none transition-colors duration-500" :class="activeTab === 'stock' ? 'bg-indigo-100' : 'bg-amber-100'"></div>
+          <div class="absolute top-0 right-0 w-40 h-40 rounded-full mix-blend-multiply filter blur-3xl opacity-50 pointer-events-none transition-colors duration-500" :class="activeTab === 'stock' ? 'bg-indigo-100' : activeTab === 'used' ? 'bg-amber-100' : 'bg-rose-100'"></div>
 
-          <div class="flex p-1.5 bg-slate-100/80 rounded-2xl mb-8 relative z-10">
-            <div class="absolute inset-y-1.5 left-1.5 w-[calc(50%-6px)] bg-white rounded-xl shadow-sm transition-transform duration-300 ease-out" :class="activeTab === 'used' ? 'translate-x-full' : 'translate-x-0'"></div>
+          <div class="relative flex p-1.5 bg-slate-100/80 rounded-2xl mb-8 z-10">
+            <div class="absolute top-1.5 bottom-1.5 w-[calc(33.333%-4px)] bg-white rounded-xl shadow-sm transition-transform duration-300 ease-out"
+                 :style="{ transform: activeTab === 'stock' ? 'translateX(0)' : activeTab === 'used' ? 'translateX(100%)' : 'translateX(200%)' }"></div>
             
-            <button @click="switchTab('stock')" class="relative z-10 flex-1 py-2.5 text-sm font-bold rounded-xl transition-colors duration-300" :class="activeTab === 'stock' ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-700'">
-              📥 Stock Input
+            <button @click="switchTab('stock')" class="relative z-10 flex-1 py-2 text-sm font-bold rounded-xl transition-colors duration-300" :class="activeTab === 'stock' ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-700'">
+              📥 Stock
             </button>
-            <button @click="switchTab('used')" class="relative z-10 flex-1 py-2.5 text-sm font-bold rounded-xl transition-colors duration-300" :class="activeTab === 'used' ? 'text-amber-600' : 'text-slate-500 hover:text-slate-700'">
-              📤 Used Input
+            <button @click="switchTab('used')" class="relative z-10 flex-1 py-2 text-sm font-bold rounded-xl transition-colors duration-300" :class="activeTab === 'used' ? 'text-amber-600' : 'text-slate-500 hover:text-slate-700'">
+              📤 Used
+            </button>
+            <button @click="switchTab('broken')" class="relative z-10 flex-1 py-2 text-sm font-bold rounded-xl transition-colors duration-300" :class="activeTab === 'broken' ? 'text-rose-600' : 'text-slate-500 hover:text-slate-700'">
+              🚨 Broken
             </button>
           </div>
 
@@ -32,7 +36,7 @@
             <div class="relative">
               <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Search & Select Category</label>
               
-              <div @click="isDropdownOpen = true" class="w-full flex items-center justify-between px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-bold cursor-pointer hover:bg-white transition-all shadow-sm" :class="[isDropdownOpen ? 'ring-2 ring-offset-2 bg-white border-transparent' : '', activeTab === 'stock' && isDropdownOpen ? 'ring-indigo-500' : activeTab === 'used' && isDropdownOpen ? 'ring-amber-500' : '']">
+              <div @click="isDropdownOpen = true" class="w-full flex items-center justify-between px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-bold cursor-pointer hover:bg-white transition-all shadow-sm" :class="[isDropdownOpen ? 'ring-2 ring-offset-2 bg-white border-transparent' : '', activeTab === 'stock' && isDropdownOpen ? 'ring-indigo-500' : activeTab === 'used' && isDropdownOpen ? 'ring-amber-500' : activeTab === 'broken' && isDropdownOpen ? 'ring-rose-500' : '']">
                 <span v-if="categoryId" class="truncate">
                   {{ selectedCategoryName }} 
                   <span class="text-xs font-bold ml-1 opacity-60">({{ getQtyForCategory(categoryId) }})</span>
@@ -47,7 +51,7 @@
                 <div v-if="isDropdownOpen" class="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl overflow-hidden p-2 origin-top">
                   <div class="relative mb-2">
                     <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    <input v-model="formSearchQuery" @click.stop type="text" placeholder="Filter categories..." class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:bg-white transition-all" :class="activeTab === 'stock' ? 'focus:ring-indigo-500' : 'focus:ring-amber-500'">
+                    <input v-model="formSearchQuery" @click.stop type="text" placeholder="Filter categories..." class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:bg-white transition-all" :class="activeTab === 'stock' ? 'focus:ring-indigo-500' : activeTab === 'used' ? 'focus:ring-amber-500' : 'focus:ring-rose-500'">
                   </div>
                   
                   <ul class="max-h-48 overflow-y-auto custom-scrollbar">
@@ -57,29 +61,28 @@
                       <div class="flex items-center gap-2">
                         <span>{{ cat.name }}</span>
                         <span class="px-2 py-0.5 text-[10px] font-black rounded-md bg-slate-100 text-slate-500 group-hover:bg-white border border-slate-200">
-                          {{ getQtyForCategory(cat.id) }} {{ activeTab === 'stock' ? 'in stock' : 'used' }}
+                          {{ getQtyForCategory(cat.id) }} {{ activeTab === 'stock' ? 'in stock' : activeTab === 'used' ? 'used' : 'broken' }}
                         </span>
                       </div>
-                      <svg v-if="categoryId === cat.id" class="w-4 h-4" :class="activeTab === 'stock' ? 'text-indigo-600' : 'text-amber-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                      <svg v-if="categoryId === cat.id" class="w-4 h-4" :class="activeTab === 'stock' ? 'text-indigo-600' : activeTab === 'used' ? 'text-amber-500' : 'text-rose-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
                     </li>
-
                   </ul>
                 </div>
               </transition>
             </div>
 
             <div>
-              <label class="flex justify-between text-[10px] font-black uppercase tracking-widest mb-2" :class="activeTab === 'stock' ? 'text-indigo-400' : 'text-amber-500'">
-                <span>{{ activeTab === 'stock' ? 'Total In Stock' : 'Total Used' }}</span>
+              <label class="flex justify-between text-[10px] font-black uppercase tracking-widest mb-2" :class="activeTab === 'stock' ? 'text-indigo-400' : activeTab === 'used' ? 'text-amber-500' : 'text-rose-500'">
+                <span>{{ activeTab === 'stock' ? 'Total In Stock' : activeTab === 'used' ? 'Total Used' : 'Total Broken' }}</span>
                 <span v-if="isUpdating" class="text-slate-400">Editing existing data</span>
               </label>
-              <input v-model.number="inputQty" type="number" min="0" class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-bold focus:outline-none focus:ring-2 focus:bg-white transition-all duration-200 shadow-sm" :class="activeTab === 'stock' ? 'focus:ring-indigo-500' : 'focus:ring-amber-500'" required>
+              <input v-model.number="inputQty" type="number" min="0" class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-bold focus:outline-none focus:ring-2 focus:bg-white transition-all duration-200 shadow-sm" :class="activeTab === 'stock' ? 'focus:ring-indigo-500' : activeTab === 'used' ? 'focus:ring-amber-500' : 'focus:ring-rose-500'" required>
             </div>
 
             <div class="pt-2">
-              <button type="submit" :disabled="isSaving || !categoryId || inputQty < 0" class="w-full relative flex justify-center items-center py-3.5 px-4 rounded-xl text-white font-bold text-sm transition-all duration-300 shadow-lg disabled:opacity-70 group" :class="activeTab === 'stock' ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 shadow-indigo-500/30' : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-amber-500/30'">
+              <button type="submit" :disabled="isSaving || !categoryId || inputQty < 0" class="w-full relative flex justify-center items-center py-3.5 px-4 rounded-xl text-white font-bold text-sm transition-all duration-300 shadow-lg disabled:opacity-70 group" :class="activeTab === 'stock' ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 shadow-indigo-500/30' : activeTab === 'used' ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-amber-500/30' : 'bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 shadow-rose-500/30'">
                 <svg v-if="isSaving" class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                <span v-else>{{ isUpdating ? 'Update Quantity' : (activeTab === 'stock' ? 'Save New Stock' : 'Save Usage') }}</span>
+                <span v-else>{{ isUpdating ? 'Update Quantity' : (activeTab === 'stock' ? 'Save New Stock' : activeTab === 'used' ? 'Save Usage' : 'Save Broken') }}</span>
               </button>
             </div>
           </form>
@@ -89,12 +92,12 @@
       <div class="lg:col-span-8">
         <div class="bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden h-full flex flex-col">
           
-          <div class="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors duration-500" :class="activeTab === 'stock' ? 'border-b-indigo-100' : 'border-b-amber-100'">
+          <div class="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors duration-500" :class="activeTab === 'stock' ? 'border-b-indigo-100' : activeTab === 'used' ? 'border-b-amber-100' : 'border-b-rose-100'">
             <div>
               <h3 class="text-xl font-extrabold text-slate-800 flex items-center">
-                {{ activeTab === 'stock' ? 'Stock Inventory' : 'Usage Tracking' }}
+                {{ activeTab === 'stock' ? 'Stock Inventory' : activeTab === 'used' ? 'Usage Tracking' : 'Broken Items' }}
               </h3>
-              <span class="inline-block mt-1 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase shadow-sm border" :class="activeTab === 'stock' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-amber-50 text-amber-600 border-amber-100'">
+              <span class="inline-block mt-1 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase shadow-sm border" :class="activeTab === 'stock' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : activeTab === 'used' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-rose-50 text-rose-600 border-rose-100'">
                 Total Qty: {{ totalQuantity }}
               </span>
             </div>
@@ -107,7 +110,7 @@
               <select 
                 v-model="tableFilterCategory" 
                 class="w-full pl-9 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:border-transparent transition-all shadow-sm appearance-none cursor-pointer"
-                :class="activeTab === 'stock' ? 'focus:ring-indigo-500' : 'focus:ring-amber-500'"
+                :class="activeTab === 'stock' ? 'focus:ring-indigo-500' : activeTab === 'used' ? 'focus:ring-amber-500' : 'focus:ring-rose-500'"
               >
                 <option value="">All Categories</option>
                 <option v-for="cat in categories" :key="cat.id" :value="cat.id">
@@ -144,10 +147,10 @@
 
                 <tr v-else-if="currentRecords.length === 0">
                   <td colspan="4" class="px-8 py-20 text-center">
-                    <div class="inline-flex items-center justify-center w-20 h-20 rounded-full mb-5 border shadow-sm transition-colors duration-500" :class="activeTab === 'stock' ? 'bg-indigo-50 border-indigo-100' : 'bg-amber-50 border-amber-100'">
-                      <svg class="w-10 h-10" :class="activeTab === 'stock' ? 'text-indigo-300' : 'text-amber-300'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    <div class="inline-flex items-center justify-center w-20 h-20 rounded-full mb-5 border shadow-sm transition-colors duration-500" :class="activeTab === 'stock' ? 'bg-indigo-50 border-indigo-100' : activeTab === 'used' ? 'bg-amber-50 border-amber-100' : 'bg-rose-50 border-rose-100'">
+                      <svg class="w-10 h-10" :class="activeTab === 'stock' ? 'text-indigo-300' : activeTab === 'used' ? 'text-amber-300' : 'text-rose-300'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                     </div>
-                    <h4 class="text-xl font-bold text-slate-800 mb-2">No {{ activeTab === 'stock' ? 'Stock' : 'Usage' }} Data</h4>
+                    <h4 class="text-xl font-bold text-slate-800 mb-2">No {{ activeTab === 'stock' ? 'Stock' : activeTab === 'used' ? 'Usage' : 'Broken' }} Data</h4>
                     <p class="text-slate-500 font-medium">Add data using the form on the left.</p>
                   </td>
                 </tr>
@@ -158,7 +161,7 @@
                       <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
                     </div>
                     <p class="text-slate-600 font-bold mb-1">No records for this category</p>
-                    <p class="text-sm text-slate-500">There are no {{ activeTab === 'stock' ? 'stock' : 'usage' }} logs for the selected category.</p>
+                    <p class="text-sm text-slate-500">There are no {{ activeTab === 'stock' ? 'stock' : activeTab === 'used' ? 'usage' : 'broken' }} logs for the selected category.</p>
                   </td>
                 </tr>
 
@@ -172,7 +175,7 @@
                   </td>
                   
                   <td class="px-8 py-5 text-center">
-                    <span class="inline-flex items-center justify-center px-4 py-1.5 rounded-xl text-xs font-black shadow-sm border" :class="activeTab === 'stock' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-amber-50 text-amber-700 border-amber-100'">
+                    <span class="inline-flex items-center justify-center px-4 py-1.5 rounded-xl text-xs font-black shadow-sm border" :class="activeTab === 'stock' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : activeTab === 'used' ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-rose-50 text-rose-700 border-rose-100'">
                       {{ item.qty }}
                     </span>
                   </td>
@@ -222,7 +225,7 @@ import { collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, query,
 import CustomAlert from '../components/CustomAlert.vue';
 
 // Unified State
-const activeTab = ref('stock'); // 'stock' or 'used'
+const activeTab = ref('stock'); // 'stock', 'used', or 'broken'
 const isLoading = ref(true);
 const isSaving = ref(false);
 const categories = ref([]);
@@ -231,6 +234,7 @@ const notification = ref({ show: false, message: '', type: 'success' });
 // COMPLETELY SEPARATE DATA ARRAYS
 const stockRecords = ref([]);
 const usedRecords = ref([]);
+const brokenRecords = ref([]); // <-- NEW Broken State
 
 // Form State
 const isDropdownOpen = ref(false);
@@ -247,7 +251,7 @@ const itemToDelete = ref(null);
 const isDeleting = ref(false);
 
 // Listeners
-let unsubCategories, unsubStock, unsubUsed;
+let unsubCategories, unsubStock, unsubUsed, unsubBroken;
 
 onMounted(() => {
   // Load Categories
@@ -267,17 +271,24 @@ onMounted(() => {
   unsubUsed = onSnapshot(usedQuery, (snapshot) => {
     usedRecords.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   });
+
+  // Load Independent Broken Logs (Saving to 'broken_stock' collection)
+  const brokenQuery = query(collection(db, 'broken_stock'), orderBy('timestamp', 'desc'));
+  unsubBroken = onSnapshot(brokenQuery, (snapshot) => {
+    brokenRecords.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  });
 });
 
 onUnmounted(() => {
   if (unsubCategories) unsubCategories();
   if (unsubStock) unsubStock();
   if (unsubUsed) unsubUsed();
+  if (unsubBroken) unsubBroken();
 });
 
 // NEW HELPER: Get the current quantity of a specific category from the active tab's data
 const getQtyForCategory = (catId) => {
-  const records = activeTab.value === 'stock' ? stockRecords.value : usedRecords.value;
+  const records = activeTab.value === 'stock' ? stockRecords.value : activeTab.value === 'used' ? usedRecords.value : brokenRecords.value;
   const existing = records.find(r => r.categoryId === catId);
   return existing ? existing.qty : 0;
 };
@@ -290,7 +301,7 @@ const totalQuantity = computed(() => {
 // Check if we are updating existing data or logging new data
 const isUpdating = computed(() => {
   if (!categoryId.value) return false;
-  const records = activeTab.value === 'stock' ? stockRecords.value : usedRecords.value;
+  const records = activeTab.value === 'stock' ? stockRecords.value : activeTab.value === 'used' ? usedRecords.value : brokenRecords.value;
   return records.some(r => r.categoryId === categoryId.value);
 });
 
@@ -337,7 +348,7 @@ const getCategoryName = (id) => {
 
 // Computed property to determine base table data
 const currentRecords = computed(() => {
-  return activeTab.value === 'stock' ? stockRecords.value : usedRecords.value;
+  return activeTab.value === 'stock' ? stockRecords.value : activeTab.value === 'used' ? usedRecords.value : brokenRecords.value;
 });
 
 // Computed property for TABLE Dropdown filter
@@ -367,7 +378,8 @@ const saveRecord = async () => {
   }
 
   isSaving.value = true;
-  const collectionName = activeTab.value === 'stock' ? 'stock' : 'used';
+  // Route to correct collection!
+  const collectionName = activeTab.value === 'stock' ? 'stock' : activeTab.value === 'used' ? 'used' : 'broken_stock';
 
   try {
     await setDoc(doc(db, collectionName, categoryId.value), {
@@ -402,7 +414,8 @@ const cancelDelete = () => {
 const confirmDelete = async () => {
   if (!itemToDelete.value) return;
   isDeleting.value = true;
-  const collectionName = activeTab.value === 'stock' ? 'stock' : 'used';
+  
+  const collectionName = activeTab.value === 'stock' ? 'stock' : activeTab.value === 'used' ? 'used' : 'broken_stock';
 
   try {
     await deleteDoc(doc(db, collectionName, itemToDelete.value));

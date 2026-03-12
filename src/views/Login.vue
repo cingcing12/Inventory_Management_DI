@@ -36,7 +36,7 @@
               v-model="name" 
               type="text" 
               class="block w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white transition-all duration-200 shadow-sm"
-              placeholder="e.g. pheak"
+              placeholder="Please field your name..."
               :disabled="isLoading"
               required
             >
