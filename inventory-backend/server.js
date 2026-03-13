@@ -83,7 +83,7 @@ app.listen(PORT, () => {
 
     // --- ANTI-SLEEP MECHANISM ---
     // Put your exact Render URL here
-    const url = 'https://inventory-management-di.onrender.com';
+    const url = 'https://inventory-management-di-8mso.onrender.com';
     
     // Ping the server every 14 minutes (840,000 milliseconds)
     setInterval(() => {
