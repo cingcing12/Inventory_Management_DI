@@ -306,9 +306,11 @@ const availableYears = computed(() => {
   return Array.from(map.values()).sort((a, b) => b.value.localeCompare(a.value));
 });
 
+// THIS IS THE MASTER FILTERED LIST
 const filteredRecords = computed(() => {
   let result = brokenRecords.value;
 
+  // 1. Apply Time Filter
   if (filterMode.value !== 'all') {
     const now = new Date();
     if (filterMode.value === 'today') {
@@ -330,6 +332,7 @@ const filteredRecords = computed(() => {
     }
   }
 
+  // 2. Apply Search Query Filter
   if (searchQuery.value) {
     const lowerSearch = searchQuery.value.toLowerCase();
     result = result.filter(record => {
@@ -342,9 +345,10 @@ const filteredRecords = computed(() => {
   return result;
 });
 
+// THIS POWERS THE PDF EXPORT - It grabs the fully filtered list!
 const pdfChunks = computed(() => {
   const chunks = [];
-  const records = filteredRecords.value;
+  const records = filteredRecords.value; // Grabs the filtered list!
   
   const firstPageSize = 10; 
   const normalPageSize = 13; 
@@ -405,6 +409,7 @@ const formatDate = (timestamp) => {
   }).format(date);
 };
 
+// Pagination Logic (Only affects the screen, NOT the PDF!)
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredRecords.value.length / itemsPerPage)));
 const startIndex = computed(() => (currentPage.value - 1) * itemsPerPage);
 const endIndex = computed(() => startIndex.value + itemsPerPage);
@@ -457,14 +462,17 @@ const exportToPDF = async () => {
   try {
     const element = document.getElementById('pdf-content');
     const fileNameDate = new Date().toISOString().split('T')[0];
+    
+    // Dynamically change file name based on what filter is active!
+    const filterName = displayFilterContext.value.replace(/ /g, '_');
 
     const opt = {
       margin:       [0.5, 0.5, 0.5, 0.5], 
-      filename:     `Broken_Stock_Report_${fileNameDate}.pdf`,
+      filename:     `Broken_Stock_Report_${filterName}_${fileNameDate}.pdf`,
       image:        { type: 'jpeg', quality: 1 },
       html2canvas:  { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
       jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' },
-      pagebreak:    { mode: 'css', before: '.pdf-page-break' } // Trigger pagebreak ONLY on this class!
+      pagebreak:    { mode: 'css', before: '.pdf-page-break' } 
     };
 
     await html2pdf()
