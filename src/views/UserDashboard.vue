@@ -43,24 +43,58 @@
 
       <transition name="fade-slide" mode="out-in">
         
-        <div v-if="status === 'idle'" key="idle" class="text-center py-4">
-          <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-slate-100 mb-6 border border-slate-200 shadow-inner">
-            <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+        <div v-if="status === 'idle'" key="form" class="py-2">
+          <div class="flex items-center justify-between mb-8">
+            <h3 class="text-2xl font-black text-slate-800 tracking-tight">Request Items</h3>
+            <div class="flex items-center px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100 text-xs font-bold uppercase tracking-wide shadow-sm">
+              <span class="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-2"></span> Secure
+            </div>
           </div>
-          <h2 class="text-3xl font-black text-slate-800 mb-3 tracking-tight">Take / Use Items</h2>
-          <p class="text-slate-500 font-medium mb-10 max-w-sm mx-auto">For security reasons, you must request unlock permission from the admin before removing stock.</p>
-          
-          <button 
-            @click="requestAccess" 
-            class="w-full relative flex justify-center items-center py-4 px-6 rounded-2xl text-white font-bold text-lg bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 shadow-lg shadow-indigo-500/30 group disabled:opacity-70 disabled:cursor-not-allowed"
-            :disabled="isLoading"
-          >
-            <svg v-if="isLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            <span v-else class="flex items-center">
-              <svg class="w-5 h-5 mr-2 group-hover:-translate-y-1 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-              Request Access via Telegram
-            </span>
-          </button>
+
+          <div class="mb-6 p-3 bg-amber-50 border border-amber-100 rounded-xl text-xs font-bold text-amber-700 flex items-start gap-2">
+            <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <p>Submitting this form will alert the Admin via Telegram. Stock will only decrease upon approval.</p>
+          </div>
+
+          <form @submit.prevent="sendRequestToAdmin" class="space-y-6">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Select Category</label>
+              <div class="relative">
+                <select v-model="form.categoryId" class="w-full pl-4 pr-10 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:border-transparent transition-all duration-200 appearance-none cursor-pointer" required>
+                  <option value="" disabled>Choose a category...</option>
+                  <option v-for="cat in categories" :key="cat.id" :value="cat.id" :disabled="getStockQty(cat.id) === 0">
+                    {{ cat.name }} — {{ getStockQty(cat.id) }} in stock
+                  </option>
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-slate-400">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <div class="flex justify-between items-end mb-2">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Quantity to Take / Remove</label>
+                <span v-if="form.categoryId" class="text-[10px] font-bold text-indigo-500">
+                  Max allowed: {{ getStockQty(form.categoryId) }}
+                </span>
+              </div>
+              <input v-model.number="form.qty" type="number" min="1" :max="form.categoryId ? getStockQty(form.categoryId) : 1" class="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:border-transparent transition-all duration-200" required>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Purpose / Note</label>
+              <textarea v-model="form.message" rows="3" placeholder="e.g., Taken for office use, or item was broken..." class="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:border-transparent transition-all duration-200 resize-none" required></textarea>
+            </div>
+
+            <button type="submit" class="w-full relative flex justify-center items-center py-4 px-6 rounded-2xl text-white font-bold text-lg bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 shadow-lg shadow-indigo-600/30 disabled:opacity-70 disabled:cursor-not-allowed group" :disabled="isSubmitting">
+              <svg v-if="isSubmitting" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              <span v-else class="flex items-center">
+                <svg class="w-5 h-5 mr-2 group-hover:-translate-y-1 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                Send Request to Admin
+              </span>
+            </button>
+          </form>
         </div>
 
         <div v-else-if="status === 'pending'" key="pending" class="text-center py-10">
@@ -71,52 +105,19 @@
               <svg class="w-8 h-8 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
           </div>
-          <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight">Awaiting Approval</h3>
-          <p class="text-slate-500 font-medium">A notification has been sent to the Admin. Waiting for them to approve your request via Telegram...</p>
+          <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight">Awaiting Admin Approval</h3>
+          <p class="text-slate-500 font-medium">Please wait. Do not close this page until the Admin approves your request via Telegram.</p>
         </div>
 
-        <div v-else-if="status === 'true'" key="form" class="py-2">
-          <div class="flex items-center justify-between mb-8">
-            <h3 class="text-2xl font-black text-slate-800 tracking-tight">Decrease Stock</h3>
-            <div class="flex items-center px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100 text-xs font-bold uppercase tracking-wide shadow-sm">
-              <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2 animate-pulse"></span> Unlocked
-            </div>
+        <div v-else-if="status === 'success'" key="success" class="text-center py-6">
+          <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-emerald-50 mb-6 border border-emerald-100">
+            <svg class="w-12 h-12 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
           </div>
-
-          <div class="mb-6 p-3 bg-amber-50 border border-amber-100 rounded-xl text-xs font-bold text-amber-700 flex items-start gap-2">
-            <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <p>Submitting this form will automatically decrease the inventory stock level for the selected item.</p>
-          </div>
-
-          <form @submit.prevent="submitStockUpdate" class="space-y-6">
-            <div>
-              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Select Category</label>
-              <div class="relative">
-                <select v-model="form.categoryId" class="w-full pl-4 pr-10 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:border-transparent transition-all duration-200 appearance-none cursor-pointer" required>
-                  <option value="" disabled>Choose a category...</option>
-                  <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
-                </select>
-                <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-slate-400">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Quantity to Take / Remove</label>
-              <input v-model.number="form.qty" type="number" min="1" class="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:border-transparent transition-all duration-200" required>
-            </div>
-
-            <div>
-              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Purpose / Note</label>
-              <textarea v-model="form.message" rows="3" placeholder="e.g., Taken for office use, or item was broken..." class="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:border-transparent transition-all duration-200 resize-none" required></textarea>
-            </div>
-
-            <button type="submit" class="w-full relative flex justify-center items-center py-4 px-6 rounded-2xl text-white font-bold text-lg bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 shadow-lg shadow-indigo-600/30 disabled:opacity-70 disabled:cursor-not-allowed group" :disabled="isSubmitting">
-              <svg v-if="isSubmitting" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-              <span v-else>Confirm & Decrease Stock</span>
-            </button>
-          </form>
+          <h3 class="text-3xl font-black text-slate-800 mb-3 tracking-tight">Request Approved!</h3>
+          <p class="text-emerald-600 font-semibold mb-8">The admin has approved your request. Stock has been successfully updated.</p>
+          <button @click="resetForm" class="px-6 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
+            Make Another Request
+          </button>
         </div>
 
         <div v-else-if="status === 'false'" key="denied" class="text-center py-6">
@@ -124,9 +125,9 @@
             <svg class="w-12 h-12 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
           </div>
           <h3 class="text-3xl font-black text-slate-800 mb-3 tracking-tight">Permission Denied</h3>
-          <p class="text-rose-600 font-semibold mb-8">Your access request was rejected or revoked by the administrator.</p>
-          <button @click="status = 'idle'" class="px-6 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
-            Return to Start
+          <p class="text-rose-600 font-semibold mb-8">The administrator rejected your request. No stock was removed.</p>
+          <button @click="resetForm" class="px-6 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
+            Go Back
           </button>
         </div>
 
@@ -136,23 +137,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 import { db } from '../firebase';
-// We added getDoc and setDoc here so we can do the math and update stock!
 import { collection, onSnapshot, doc, addDoc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
-// Router & State
 const router = useRouter();
 const currentUserName = ref('User');
 const currentUserId = ref('');
 
 const status = ref('idle'); 
 const requestId = ref(null);
-const isLoading = ref(false);
 const isSubmitting = ref(false);
 const categories = ref([]);
+const stockRecords = ref([]); 
 const notification = ref({ show: false, message: '', type: 'success' });
 
 const form = ref({
@@ -161,14 +160,30 @@ const form = ref({
   message: ''
 });
 
+let unsubCategories, unsubStock;
+
 onMounted(() => {
   currentUserName.value = localStorage.getItem('userName') || 'Staff Member';
   currentUserId.value = localStorage.getItem('userId') || 'unknown_user';
 
-  onSnapshot(collection(db, 'categories'), (snapshot) => {
+  unsubCategories = onSnapshot(collection(db, 'categories'), (snapshot) => {
     categories.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   });
+
+  unsubStock = onSnapshot(collection(db, 'stock'), (snapshot) => {
+    stockRecords.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  });
 });
+
+onUnmounted(() => {
+  if (unsubCategories) unsubCategories();
+  if (unsubStock) unsubStock();
+});
+
+const getStockQty = (categoryId) => {
+  const stockItem = stockRecords.value.find(s => s.categoryId === categoryId);
+  return stockItem ? Number(stockItem.qty) : 0;
+};
 
 const showNotification = (message, type = 'success') => {
   notification.value = { show: true, message, type };
@@ -184,40 +199,68 @@ const handleLogout = () => {
   router.push('/');
 };
 
-const requestAccess = async () => {
-  isLoading.value = true;
+const resetForm = () => {
+  form.value = { categoryId: '', qty: 1, message: '' };
+  status.value = 'idle';
+};
+
+// 1. SEND DATA TO TELEGRAM
+const sendRequestToAdmin = async () => {
+  const maxAvailable = getStockQty(form.value.categoryId);
+  if (form.value.qty > maxAvailable) {
+    showNotification(`Error: Only ${maxAvailable} left in stock!`, 'error');
+    return;
+  }
+
+  isSubmitting.value = true;
   try {
+    // Get the category name so the Admin knows what they are approving
+    const cat = categories.value.find(c => c.id === form.value.categoryId);
+    const categoryName = cat ? cat.name : 'Unknown Item';
+
     const res = await axios.post('https://inventory-management-di-8mso.onrender.com/api/request-permission', {
       userId: currentUserId.value,
-      userName: currentUserName.value 
+      userName: currentUserName.value,
+      categoryName: categoryName,
+      qty: form.value.qty,
+      availableStock: maxAvailable, // <--- WE ADDED THIS LINE!
+      message: form.value.message
     });
     
     requestId.value = res.data.requestId;
-    status.value = 'pending';
-    listenToFirebaseChanges(requestId.value);
+    status.value = 'pending'; // Puts the user in the "Awaiting Approval" loading screen
+    listenToAdminApproval(requestId.value);
   } catch (error) {
     console.error("Error asking Node backend:", error);
     showNotification("Could not reach the server. Is Node.js running?", "error");
     status.value = 'idle';
   } finally {
-    isLoading.value = false;
+    isSubmitting.value = false;
   }
 };
 
-const listenToFirebaseChanges = (id) => {
-  onSnapshot(doc(db, "requests", id), (docSnap) => {
+// 2. WAIT FOR TELEGRAM BUTTON CLICK
+const listenToAdminApproval = (id) => {
+  const unsub = onSnapshot(doc(db, "requests", id), async (docSnap) => {
     if (docSnap.exists()) {
-      status.value = docSnap.data().status; 
+      const adminStatus = docSnap.data().status; 
+      
+      if (adminStatus === 'true' && status.value === 'pending') {
+        unsub(); // Stop listening
+        await finalizeApprovedStock(); // DEDUCT STOCK!
+      } 
+      else if (adminStatus === 'false' && status.value === 'pending') {
+        unsub(); // Stop listening
+        status.value = 'false'; // Show rejected screen
+      }
     }
   });
 };
 
-// THIS IS THE NEW LOGIC THAT DECREASES STOCK
-const submitStockUpdate = async () => {
-  isSubmitting.value = true;
+// 3. EXECUTE FIREBASE UPDATE IF APPROVED
+const finalizeApprovedStock = async () => {
   try {
-    
-    // 1. SAVE THE LOG HISTORY (The Admin will still see this in the Recent Reports table)
+    // 1. Save Log
     await addDoc(collection(db, 'broken'), {
       user_id: currentUserId.value,
       category_id: form.value.categoryId,
@@ -226,7 +269,7 @@ const submitStockUpdate = async () => {
       timestamp: serverTimestamp()
     });
 
-    // 2. FETCH THE CURRENT STOCK LEVEL
+    // 2. Deduct Stock
     const stockRef = doc(db, 'stock', form.value.categoryId);
     const stockSnap = await getDoc(stockRef);
 
@@ -235,34 +278,21 @@ const submitStockUpdate = async () => {
       currentQty = Number(stockSnap.data().qty) || 0;
     }
 
-    // 3. SUBTRACT THE TAKEN AMOUNT
     const newQty = currentQty - form.value.qty;
 
-    // 4. SAVE THE NEW DECREASED NUMBER BACK TO FIREBASE
     await setDoc(stockRef, {
       categoryId: form.value.categoryId,
-      qty: newQty < 0 ? 0 : newQty, // Prevent stock from going into negative numbers
+      qty: newQty < 0 ? 0 : newQty,
       updatedAt: serverTimestamp()
     }, { merge: true });
 
-    showNotification('Stock decreased and logged successfully!');
-    
-    // Reset form and lock them back out after 2 seconds
-    form.value = { categoryId: '', qty: 1, message: '' };
-    setTimeout(() => {
-      status.value = 'idle';
-    }, 2000);
-
+    status.value = 'success'; // Show the success screen!
   } catch (error) {
-    console.error("Error updating stock:", error);
-    showNotification('Failed to update stock.', 'error');
-  } finally {
-    isSubmitting.value = false;
+    console.error("Error finalizing stock:", error);
+    showNotification('Failed to update database after approval.', 'error');
+    status.value = 'idle';
   }
 };
-
-
-
 </script>
 
 <style scoped>

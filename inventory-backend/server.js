@@ -3,62 +3,74 @@ const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
 const TelegramBot = require('node-telegram-bot-api');
-const https = require('https'); // Built-in Node.js module for making requests
+const https = require('https');
 
-// Initialize Firebase Admin
-const serviceAccount = JSON.parse(process.env.SERVICE_ACCOUNT);
+let serviceAccount;
+try {
+    serviceAccount = JSON.parse(process.env.SERVICE_ACCOUNT);
+} catch (error) {
+    console.error("🚨 FATAL ERROR: Could not parse SERVICE_ACCOUNT JSON!");
+    process.exit(1); 
+}
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 const db = admin.firestore();
 
-// Initialize Telegram Bot
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
 const bot = new TelegramBot(token, { polling: true });
 
 const app = express();
-
-// Set CORS to allow your GitHub Pages frontend to talk to it!
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-// --- THE WAKE-UP ENDPOINT ---
-// This is a tiny endpoint just so the server has something to ping
 app.get('/ping', (req, res) => {
     res.status(200).send('Server is awake!');
 });
 
-// API Endpoint for Vue to trigger a request
+// --- UPDATED ENDPOINT ---
 app.post('/api/request-permission', async (req, res) => {
-    const { userId, userName } = req.body;
+    // 1. Grab all the new details from the frontend
+    const { userId, userName, categoryName, qty, message } = req.body;
 
-    // 1. Create a request document in Firebase
     const requestRef = await db.collection('requests').add({
         user_id: userId,
         user_name: userName,
+        category_name: categoryName,
+        qty: qty,
+        message: message,
         status: 'pending',
         timestamp: admin.firestore.FieldValue.serverTimestamp()
     });
 
-    // 2. Send Telegram Message to Admin with Buttons
     const opts = {
         reply_markup: {
             inline_keyboard: [
                 [
                     { text: '✅ Approve', callback_data: `approve_${requestRef.id}` },
-                    { text: '❌ Reject/Revoke', callback_data: `revoke_${requestRef.id}` }
+                    { text: '❌ Reject', callback_data: `revoke_${requestRef.id}` }
                 ]
             ]
         }
     };
 
-    bot.sendMessage(adminChatId, `🚨 User *${userName}* is requesting permission to take/use stock.`, { parse_mode: 'Markdown', ...opts });
+    // 2. Create a beautiful, detailed Telegram message
+    const telegramMessage = `
+🚨 *New Stock Request* 🚨
+
+👤 *User:* ${userName}
+📦 *Item:* ${categoryName}
+🔢 *Quantity:* ${qty}
+📝 *Reason:* ${message}
+    `;
+
+    bot.sendMessage(adminChatId, telegramMessage, { parse_mode: 'Markdown', ...opts });
     
     res.status(200).json({ success: true, requestId: requestRef.id });
 });
 
-// Listen for Admin Button Clicks in Telegram
 bot.on('callback_query', async (callbackQuery) => {
     const action = callbackQuery.data;
     const msg = callbackQuery.message;
@@ -66,35 +78,28 @@ bot.on('callback_query', async (callbackQuery) => {
 
     const status = command === 'approve' ? 'true' : 'false';
 
-    // Update Firebase
     await db.collection('requests').doc(requestId).update({ status: status });
 
-    // Update Telegram message so buttons disappear
-    bot.editMessageText(`Status updated to: ${status === 'true' ? '✅ Approved' : '❌ Revoked'} for request ID: ${requestId}`, {
-        chat_id: msg.chat.id,
-        message_id: msg.message_id
-    });
+    bot.editMessageText(
+        `${msg.text}\n\n${status === 'true' ? '✅ *APPROVED*' : '❌ *REJECTED*'}`, 
+        {
+            chat_id: msg.chat.id,
+            message_id: msg.message_id,
+            parse_mode: 'Markdown'
+        }
+    );
 });
 
-// Start the server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ Server running on port ${PORT}`);
 
-    // --- ANTI-SLEEP MECHANISM ---
-    // Put your exact Render URL here
     const url = 'https://inventory-management-di-8mso.onrender.com';
-    
-    // Ping the server every 14 minutes (840,000 milliseconds)
     setInterval(() => {
         https.get(`${url}/ping`, (resp) => {
-            if (resp.statusCode === 200) {
-                console.log('Anti-sleep ping successful. Server kept awake.');
-            } else {
-                console.error('Anti-sleep ping failed with status:', resp.statusCode);
-            }
-        }).on('error', (err) => {
-            console.error('Anti-sleep ping error:', err.message);
+            if (resp.statusCode === 200) console.log('Anti-sleep ping successful.');
+        }).on('error', () => {
+            console.log('Anti-sleep ping sent.');
         });
     }, 14 * 60 * 1000); 
 });
