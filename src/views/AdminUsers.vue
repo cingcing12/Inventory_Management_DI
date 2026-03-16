@@ -19,12 +19,13 @@
           
           <div class="flex items-center gap-3 mb-6">
             <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+              <svg v-if="!isEditing" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+              <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
             </div>
-            <h3 class="text-xl font-bold text-slate-800">Create Account</h3>
+            <h3 class="text-xl font-bold text-slate-800">{{ isEditing ? 'Edit User' : 'Create Account' }}</h3>
           </div>
 
-          <form @submit.prevent="addUser" class="space-y-5">
+          <form @submit.prevent="submitForm" class="space-y-5">
             <div>
               <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Full Name</label>
               <div class="relative">
@@ -61,14 +62,27 @@
               </div>
             </div>
             
-            <button 
-              type="submit" 
-              class="w-full relative flex justify-center items-center py-3.5 px-4 rounded-xl text-white font-bold text-sm bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg shadow-indigo-500/30 disabled:opacity-70 disabled:cursor-not-allowed group mt-2"
-              :disabled="isSubmitting || !form.name || !form.role"
-            >
-              <svg v-if="isSubmitting" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-              <span v-else>Add User</span>
-            </button>
+            <div class="flex gap-3 mt-2">
+              <button 
+                v-if="isEditing"
+                type="button"
+                @click="cancelEdit"
+                class="flex-1 py-3.5 px-4 rounded-xl text-slate-600 font-bold text-sm bg-slate-100 hover:bg-slate-200 transition-all duration-200 focus:outline-none"
+                :disabled="isSubmitting"
+              >
+                Cancel
+              </button>
+
+              <button 
+                type="submit" 
+                class="relative flex justify-center items-center py-3.5 px-4 rounded-xl text-white font-bold text-sm bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg shadow-indigo-500/30 disabled:opacity-70 disabled:cursor-not-allowed group"
+                :class="isEditing ? 'flex-[2]' : 'w-full'"
+                :disabled="isSubmitting || !form.name || !form.role"
+              >
+                <svg v-if="isSubmitting" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <span v-else>{{ isEditing ? 'Update User' : 'Add User' }}</span>
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -115,17 +129,18 @@
                   </td>
                 </tr>
 
-                <tr v-else v-for="user in users" :key="user.id" class="hover:bg-slate-50/50 transition-colors group">
+                <tr v-else v-for="user in users" :key="user.id" class="hover:bg-slate-50/50 transition-colors group" :class="{'bg-indigo-50/50': editingId === user.id}">
                   <td class="px-8 py-5">
                     <div class="flex items-center gap-4">
                       <div :class="[
-                        'w-10 h-10 rounded-full flex items-center justify-center text-white font-black text-sm shadow-md ring-2 ring-white',
-                        user.role === 'admin' ? 'bg-gradient-to-tr from-purple-500 to-indigo-600' : 'bg-gradient-to-tr from-blue-400 to-cyan-500'
+                        'w-10 h-10 rounded-full flex items-center justify-center text-white font-black text-sm shadow-md ring-2 transition-colors',
+                        user.role === 'admin' ? 'bg-gradient-to-tr from-purple-500 to-indigo-600 ring-white' : 'bg-gradient-to-tr from-blue-400 to-cyan-500 ring-white',
+                        editingId === user.id ? '!ring-indigo-300' : ''
                       ]">
                         {{ user.name.charAt(0).toUpperCase() }}
                       </div>
                       <div class="flex flex-col">
-                        <span class="text-sm font-bold text-slate-800">{{ user.name }}</span>
+                        <span class="text-sm font-bold text-slate-800" :class="{'text-indigo-700': editingId === user.id}">{{ user.name }}</span>
                         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Member</span>
                       </div>
                     </div>
@@ -149,15 +164,25 @@
                   </td>
                   
                   <td class="px-8 py-5 text-right">
-                    <button 
-                      v-if="user.id !== currentUserId"
-                      @click="openDeleteModal(user.id)" 
-                      class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-white hover:bg-rose-500 hover:shadow-lg hover:shadow-rose-500/30 transition-all focus:outline-none"
-                      title="Delete User"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
-                    <span v-else class="text-xs font-bold text-slate-300 tracking-wide uppercase px-2">You</span>
+                    <div class="flex justify-end gap-2">
+                      <button 
+                        @click="startEdit(user)" 
+                        class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border hover:border-indigo-100 transition-all focus:outline-none"
+                        title="Edit User"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                      </button>
+
+                      <button 
+                        v-if="user.id !== currentUserId"
+                        @click="openDeleteModal(user.id)" 
+                        class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-white hover:bg-rose-500 hover:shadow-lg hover:shadow-rose-500/30 transition-all focus:outline-none"
+                        title="Delete User"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                      </button>
+                      <span v-else class="text-xs font-bold text-slate-300 tracking-wide uppercase px-2 flex items-center">You</span>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -202,9 +227,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { db } from '../firebase';
-import { collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+// Ensure updateDoc is imported!
+import { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy } from 'firebase/firestore';
 
-// IMPORTANT: Import your CustomAlert component here!
 import CustomAlert from '../components/CustomAlert.vue';
 
 // Reactive state
@@ -213,6 +238,10 @@ const isLoading = ref(true);
 const isSubmitting = ref(false);
 const currentUserId = ref('');
 const notification = ref({ show: false, message: '', type: 'success' });
+
+// Edit State
+const isEditing = ref(false);
+const editingId = ref(null);
 
 // Modal State
 const isDeleteModalOpen = ref(false);
@@ -252,7 +281,8 @@ const showNotification = (message, type = 'success') => {
   }, 3000);
 };
 
-const addUser = async () => {
+// Handles both Create & Update
+const submitForm = async () => {
   if (!form.value.name.trim() || !form.value.role) {
     showNotification('Please fill out all fields.', 'error');
     return;
@@ -260,23 +290,52 @@ const addUser = async () => {
   
   isSubmitting.value = true;
   try {
-    await addDoc(usersCollection, {
-      name: form.value.name.trim().toLowerCase(),
-      role: form.value.role
-    });
-    
-    showNotification(`User ${form.value.name} created successfully!`, 'success');
-    form.value = { name: '', role: '' };
+    if (isEditing.value && editingId.value) {
+      // UPDATE EXISTING USER
+      const userRef = doc(db, 'users', editingId.value);
+      await updateDoc(userRef, {
+        name: form.value.name.trim().toLowerCase(),
+        role: form.value.role
+      });
+      showNotification(`User ${form.value.name} updated successfully!`, 'success');
+      cancelEdit();
+    } else {
+      // CREATE NEW USER
+      await addDoc(usersCollection, {
+        name: form.value.name.trim().toLowerCase(),
+        role: form.value.role
+      });
+      showNotification(`User ${form.value.name} created successfully!`, 'success');
+      form.value = { name: '', role: '' };
+    }
   } catch (error) {
-    console.error("Error adding user: ", error);
-    showNotification('Failed to create user account.', 'error');
+    console.error("Error saving user: ", error);
+    showNotification(isEditing.value ? 'Failed to update user.' : 'Failed to create user account.', 'error');
   } finally {
     isSubmitting.value = false;
   }
 };
 
+// Edit Control Functions
+const startEdit = (user) => {
+  isEditing.value = true;
+  editingId.value = user.id;
+  form.value.name = user.name;
+  form.value.role = user.role;
+  window.scrollTo({ top: 0, behavior: 'smooth' }); // Smoothly scroll up to the form
+};
+
+const cancelEdit = () => {
+  isEditing.value = false;
+  editingId.value = null;
+  form.value = { name: '', role: '' };
+};
+
 // Custom Modal Delete Logic
 const openDeleteModal = (id) => {
+  // If they are currently editing the one they want to delete, cancel the edit first
+  if (editingId.value === id) cancelEdit();
+  
   userToDelete.value = id;
   isDeleteModalOpen.value = true;
 };
@@ -305,7 +364,6 @@ const confirmDelete = async () => {
 </script>
 
 <style scoped>
-/* Modal animation (Scale and fade in) */
 .fade-scale-enter-active,
 .fade-scale-leave-active {
   transition: opacity 0.3s ease, transform 0.3s ease;
