@@ -110,10 +110,16 @@
               
               <td class="px-8 py-5">
                 <div class="flex items-center">
-                  <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-100 to-indigo-200 text-indigo-700 flex items-center justify-center font-bold text-xs mr-3 border border-indigo-200 shadow-sm">
+                  <div :class="[
+                    'w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs mr-3 border shadow-sm',
+                    report._collection === 'transactions' ? 'bg-gradient-to-tr from-rose-100 to-rose-200 text-rose-700 border-rose-200' : 'bg-gradient-to-tr from-indigo-100 to-indigo-200 text-indigo-700 border-indigo-200'
+                  ]">
                     {{ getUserName(report.user_id).charAt(0).toUpperCase() }}
                   </div>
-                  <span class="text-sm font-bold text-slate-800">{{ getUserName(report.user_id) }}</span>
+                  <span class="text-sm font-bold text-slate-800">
+                    {{ getUserName(report.user_id) }}
+                    <span v-if="report._collection === 'transactions'" class="ml-1 text-[9px] text-rose-500 uppercase tracking-wide bg-rose-50 px-1.5 py-0.5 rounded">(Admin)</span>
+                  </span>
                 </div>
               </td>
 
@@ -134,7 +140,7 @@
               </td>
               
               <td class="px-8 py-5 text-right">
-                <button @click="openDeleteModal(report.id)" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition-all focus:outline-none" title="Delete Report">
+                <button @click="openDeleteModal(report)" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition-all focus:outline-none" title="Delete Report">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                 </button>
               </td>
@@ -238,7 +244,11 @@ import html2pdf from 'html2pdf.js';
 
 const isLoading = ref(true);
 const isExporting = ref(false); 
-const brokenRecords = ref([]);
+
+// Separate arrays for the two different streams of data
+const userBrokenRecords = ref([]);
+const adminTxRecords = ref([]);
+
 const categories = ref([]);
 const users = ref([]);
 
@@ -249,13 +259,13 @@ const selectedYear = ref('');
 
 const notification = ref({ show: false, message: '', type: 'success' });
 const isDeleteModalOpen = ref(false);
-const itemToDelete = ref(null);
+const itemToDelete = ref(null); 
 const isDeleting = ref(false);
 
 const currentPage = ref(1);
 const itemsPerPage = 50;
 
-let unsubBroken, unsubCategories, unsubUsers;
+let unsubBroken, unsubTransactions, unsubCategories, unsubUsers;
 
 onMounted(() => {
   unsubCategories = onSnapshot(collection(db, 'categories'), (snapshot) => {
@@ -266,22 +276,66 @@ onMounted(() => {
     users.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   });
 
-  const q = query(collection(db, 'broken'), orderBy('timestamp', 'desc'));
-  unsubBroken = onSnapshot(q, (snapshot) => {
-    brokenRecords.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    setTimeout(() => { isLoading.value = false; }, 300);
+  // 1. Fetch User Reports (from 'broken' collection)
+  unsubBroken = onSnapshot(query(collection(db, 'broken'), orderBy('timestamp', 'desc')), (snapshot) => {
+    userBrokenRecords.value = snapshot.docs.map(doc => ({ 
+      id: doc.id, 
+      _collection: 'broken', 
+      ...doc.data() 
+    }));
+    checkLoadingState();
+  });
+
+  // 2. Fetch Admin Manual Actions (from 'transactions' collection)
+  unsubTransactions = onSnapshot(query(collection(db, 'transactions'), orderBy('timestamp', 'desc')), (snapshot) => {
+    adminTxRecords.value = snapshot.docs.map(doc => ({ 
+      id: doc.id, 
+      _collection: 'transactions', 
+      ...doc.data() 
+    }));
+    checkLoadingState();
   });
 });
+
+const checkLoadingState = () => {
+  setTimeout(() => { isLoading.value = false; }, 400);
+};
 
 onUnmounted(() => {
   if (unsubCategories) unsubCategories();
   if (unsubUsers) unsubUsers();
   if (unsubBroken) unsubBroken();
+  if (unsubTransactions) unsubTransactions();
+});
+
+// --- MAGIC MERGE FUNCTION ---
+const combinedRecords = computed(() => {
+  const mappedAdminTx = adminTxRecords.value
+    .filter(tx => tx.type === 'out') // Only grab the removals
+    .map(tx => ({
+      id: tx.id,
+      _collection: 'transactions',
+      user_id: tx.user_id || 'ADMIN_MANUAL', // <--- NOW READS THE REAL ADMIN ID!
+      category_id: tx.categoryId,
+      qty: tx.qty,
+      message: tx.reason,
+      timestamp: tx.timestamp
+    }));
+
+  const all = [...userBrokenRecords.value, ...mappedAdminTx];
+  
+  all.sort((a, b) => {
+    const timeA = a.timestamp ? a.timestamp.toMillis() : Date.now();
+    const timeB = b.timestamp ? b.timestamp.toMillis() : Date.now();
+    return timeB - timeA;
+  });
+  
+  return all;
 });
 
 const availableMonths = computed(() => {
   const map = new Map();
-  brokenRecords.value.forEach(record => {
+  combinedRecords.value.forEach(record => {
     if (!record.timestamp) return;
     const d = record.timestamp.toDate();
     const monthStr = d.getMonth().toString().padStart(2, '0');
@@ -295,7 +349,7 @@ const availableMonths = computed(() => {
 
 const availableYears = computed(() => {
   const map = new Map();
-  brokenRecords.value.forEach(record => {
+  combinedRecords.value.forEach(record => {
     if (!record.timestamp) return;
     const d = record.timestamp.toDate();
     const year = d.getFullYear().toString();
@@ -306,11 +360,9 @@ const availableYears = computed(() => {
   return Array.from(map.values()).sort((a, b) => b.value.localeCompare(a.value));
 });
 
-// THIS IS THE MASTER FILTERED LIST
 const filteredRecords = computed(() => {
-  let result = brokenRecords.value;
+  let result = combinedRecords.value;
 
-  // 1. Apply Time Filter
   if (filterMode.value !== 'all') {
     const now = new Date();
     if (filterMode.value === 'today') {
@@ -332,7 +384,6 @@ const filteredRecords = computed(() => {
     }
   }
 
-  // 2. Apply Search Query Filter
   if (searchQuery.value) {
     const lowerSearch = searchQuery.value.toLowerCase();
     result = result.filter(record => {
@@ -345,10 +396,9 @@ const filteredRecords = computed(() => {
   return result;
 });
 
-// THIS POWERS THE PDF EXPORT - It grabs the fully filtered list!
 const pdfChunks = computed(() => {
   const chunks = [];
-  const records = filteredRecords.value; // Grabs the filtered list!
+  const records = filteredRecords.value;
   
   const firstPageSize = 10; 
   const normalPageSize = 13; 
@@ -396,9 +446,11 @@ const getCategoryName = (id) => {
   return cat ? cat.name : 'Unknown';
 };
 
+// --- UPDATED USER NAME HELPER ---
 const getUserName = (id) => {
+  if (id === 'ADMIN_MANUAL') return 'Administrator (Legacy)'; // Fallback for old transactions before we added the ID
   const user = users.value.find(u => u.id === id);
-  return user ? user.name : 'Unknown User';
+  return user ? user.name : 'Unknown User'; // Now returns the ACTUAL Admin's name!
 };
 
 const formatDate = (timestamp) => {
@@ -409,7 +461,7 @@ const formatDate = (timestamp) => {
   }).format(date);
 };
 
-// Pagination Logic (Only affects the screen, NOT the PDF!)
+// Pagination Logic
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredRecords.value.length / itemsPerPage)));
 const startIndex = computed(() => (currentPage.value - 1) * itemsPerPage);
 const endIndex = computed(() => startIndex.value + itemsPerPage);
@@ -426,8 +478,8 @@ const prevPage = () => {
   if (currentPage.value > 1) currentPage.value--;
 };
 
-const openDeleteModal = (id) => {
-  itemToDelete.value = id;
+const openDeleteModal = (report) => {
+  itemToDelete.value = report;
   isDeleteModalOpen.value = true;
 };
 
@@ -445,7 +497,7 @@ const confirmDelete = async () => {
   if (!itemToDelete.value) return;
   isDeleting.value = true;
   try {
-    await deleteDoc(doc(db, 'broken', itemToDelete.value));
+    await deleteDoc(doc(db, itemToDelete.value._collection, itemToDelete.value.id));
     showNotification('Report permanently deleted.', 'success');
     isDeleteModalOpen.value = false;
     itemToDelete.value = null;
@@ -463,7 +515,6 @@ const exportToPDF = async () => {
     const element = document.getElementById('pdf-content');
     const fileNameDate = new Date().toISOString().split('T')[0];
     
-    // Dynamically change file name based on what filter is active!
     const filterName = displayFilterContext.value.replace(/ /g, '_');
 
     const opt = {

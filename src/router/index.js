@@ -10,6 +10,7 @@ import AdminCategories from '../views/AdminCategories.vue'
 import AdminStock from '../views/AdminStock.vue'
 import AdminUsers from '@/views/AdminUsers.vue'
 import AdminBrokenLogs from '../views/AdminBrokenLogs.vue'
+import AdminTransactions from '../views/AdminTransactions.vue'
 
 // 2. Define the Routes
 const routes = [
@@ -51,7 +52,12 @@ const routes = [
         path: 'logs', 
         name: 'AdminBrokenLogs',
         component: AdminBrokenLogs
-      }
+      },
+      {
+        path: 'transactions', // URL will be /admin/transactions
+        name: 'AdminTransactions',
+        component: AdminTransactions
+      },
     ]
   }
 ]
