@@ -1,10 +1,14 @@
 <template>
-  <div class="max-w-7xl mx-auto relative">
+  <div class="max-w-7xl mx-auto relative pb-12">
     
-    <div class="flex items-center justify-between mb-8">
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
       <div>
-        <h2 class="text-3xl font-black text-slate-800 tracking-tight">Manage Stock & Usage</h2>
-        <p class="text-sm font-medium text-slate-500 mt-1">Independent records for your incoming items and broken stock.</p>
+        <h2 class="text-3xl font-black text-slate-800 tracking-tight">Stock Transactions</h2>
+        <p class="text-sm font-medium text-slate-500 mt-1">Add new deliveries or remove stock with a detailed reason.</p>
+      </div>
+      <div v-if="!isLoading" class="hidden sm:flex items-center bg-white border border-slate-200 shadow-sm rounded-full px-5 py-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2.5 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
+        <span class="text-xs font-bold text-slate-600 tracking-wider">LEDGER ACTIVE</span>
       </div>
     </div>
 
@@ -12,28 +16,29 @@
       
       <div class="lg:col-span-4 lg:sticky lg:top-8 h-fit">
         
-        <div class="bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 md:p-8 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] relative overflow-hidden">
+        <div class="bg-white rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 md:p-8 transition-all duration-300 relative overflow-hidden">
           
-          <div class="absolute top-0 right-0 w-40 h-40 rounded-full mix-blend-multiply filter blur-3xl opacity-50 pointer-events-none transition-colors duration-500" :class="txMode === 'in' ? 'bg-indigo-100' : 'bg-rose-100'"></div>
+          <div class="absolute top-0 right-0 w-40 h-40 rounded-full mix-blend-multiply filter blur-[60px] opacity-40 pointer-events-none transition-colors duration-500" :class="txMode === 'in' ? 'bg-emerald-300' : 'bg-rose-300'"></div>
 
-          <div class="relative flex p-1.5 bg-slate-100/80 rounded-2xl mb-8 z-10">
-            <div class="absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-white rounded-xl shadow-sm transition-transform duration-300 ease-out"
-                 :style="{ transform: txMode === 'in' ? 'translateX(0)' : 'translateX(100%)' }"></div>
+          <h3 class="text-xl font-extrabold text-slate-800 mb-6 relative z-10">Log Action</h3>
+
+          <div class="flex p-1.5 bg-slate-100/80 rounded-2xl mb-6 relative z-10 border border-slate-200/50">
+            <div class="absolute inset-y-1.5 left-1.5 w-[calc(50%-6px)] bg-white rounded-xl shadow-sm transition-transform duration-300 ease-out" :class="txMode === 'out' ? 'translate-x-full' : 'translate-x-0'"></div>
             
-            <button @click="txMode = 'in'" class="relative z-10 flex-1 py-2 text-sm font-bold rounded-xl transition-colors duration-300" :class="txMode === 'in' ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-700'">
-              📥 Stock In
+            <button @click="txMode = 'in'" class="relative z-10 flex-1 py-2.5 text-sm font-bold rounded-xl transition-colors duration-300" :class="txMode === 'in' ? 'text-emerald-600' : 'text-slate-500 hover:text-slate-700'">
+              📥 Add Stock
             </button>
-            <button @click="txMode = 'out'" class="relative z-10 flex-1 py-2 text-sm font-bold rounded-xl transition-colors duration-300" :class="txMode === 'out' ? 'text-rose-600' : 'text-slate-500 hover:text-slate-700'">
-              🚨 Stock Out
+            <button @click="txMode = 'out'" class="relative z-10 flex-1 py-2.5 text-sm font-bold rounded-xl transition-colors duration-300" :class="txMode === 'out' ? 'text-rose-600' : 'text-slate-500 hover:text-slate-700'">
+              📤 Remove Stock
             </button>
           </div>
 
-          <form @submit.prevent="saveTransaction" class="space-y-6 relative z-10">
+          <form @submit.prevent="saveTransaction" class="space-y-5 relative z-10">
             
             <div>
               <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Item Category</label>
               <div class="relative">
-                <select v-model="form.categoryId" class="w-full pl-4 pr-10 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 font-bold focus:outline-none focus:ring-2 focus:bg-white transition-all shadow-sm appearance-none cursor-pointer" :class="txMode === 'in' ? 'focus:ring-indigo-500' : 'focus:ring-rose-500'" required>
+                <select v-model="form.categoryId" class="w-full pl-4 pr-10 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 font-bold focus:outline-none focus:ring-2 focus:bg-white transition-all shadow-sm appearance-none cursor-pointer" :class="txMode === 'in' ? 'focus:ring-emerald-500' : 'focus:ring-rose-500'" required>
                   <option value="" disabled>Select category...</option>
                   <option 
                     v-for="cat in categories" 
@@ -52,7 +57,7 @@
 
             <div>
               <div class="flex justify-between items-end mb-2">
-                <label class="block text-[10px] font-black uppercase tracking-widest" :class="txMode === 'in' ? 'text-indigo-400' : 'text-rose-400'">
+                <label class="block text-[10px] font-black uppercase tracking-widest" :class="txMode === 'in' ? 'text-emerald-500' : 'text-rose-400'">
                   Quantity
                 </label>
                 <span v-if="txMode === 'out' && form.categoryId" class="text-[10px] font-bold text-slate-400">
@@ -65,7 +70,7 @@
                 min="1" 
                 :max="txMode === 'out' && form.categoryId ? getAvailableQty(form.categoryId) : null"
                 class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-bold focus:outline-none focus:ring-2 focus:bg-white transition-all shadow-sm" 
-                :class="txMode === 'in' ? 'focus:ring-indigo-500' : 'focus:ring-rose-500'" 
+                :class="txMode === 'in' ? 'focus:ring-emerald-500' : 'focus:ring-rose-500'" 
                 required
               >
             </div>
@@ -77,13 +82,18 @@
                 rows="2" 
                 :placeholder="txMode === 'in' ? 'e.g., New delivery from supplier...' : 'e.g., Given to IT Dept, or Item cracked...'" 
                 class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 font-medium focus:outline-none focus:ring-2 focus:bg-white transition-all resize-none shadow-sm"
-                :class="txMode === 'in' ? 'focus:ring-indigo-500' : 'focus:ring-rose-500'"
-                :required="txMode === 'out'"
+                :class="txMode === 'in' ? 'focus:ring-emerald-500' : 'focus:ring-rose-500'"
+                required
               ></textarea>
             </div>
 
             <div class="pt-2">
-              <button type="submit" :disabled="isSaving || !form.categoryId" class="w-full relative flex justify-center items-center py-4 px-4 rounded-xl text-white font-bold text-sm transition-all duration-300 shadow-lg disabled:opacity-70 group" :class="txMode === 'in' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30' : 'bg-rose-600 hover:bg-rose-700 shadow-rose-500/30'">
+              <button 
+                type="submit" 
+                :disabled="isSaving || !form.categoryId || (txMode === 'out' && getAvailableQty(form.categoryId) === 0)" 
+                class="w-full relative flex justify-center items-center py-4 px-4 rounded-xl text-white font-bold text-sm transition-all duration-300 shadow-lg disabled:opacity-70 group" 
+                :class="txMode === 'in' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/30' : 'bg-rose-600 hover:bg-rose-700 shadow-rose-500/30'"
+              >
                 <svg v-if="isSaving" class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 <span v-else>{{ txMode === 'in' ? 'Confirm Stock In' : 'Confirm Stock Out' }}</span>
               </button>
@@ -196,9 +206,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'; // <--- Make sure watch is imported!
 import { db } from '../firebase';
-import { collection, onSnapshot, doc, getDoc, setDoc, addDoc, deleteDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, doc, addDoc, deleteDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import CustomAlert from '../components/CustomAlert.vue';
 
 const txMode = ref('in'); 
@@ -209,8 +219,7 @@ const isLoading = ref(true);
 const isSaving = ref(false);
 const categories = ref([]);
 const stockRecords = ref([]);
-const usedRecords = ref([]);
-const brokenRecords = ref([]);
+const brokenRecords = ref([]); 
 const notification = ref({ show: false, message: '', type: 'success' });
 
 const form = ref({ categoryId: '', qty: 1, reason: '' });
@@ -219,7 +228,7 @@ const isDeleteModalOpen = ref(false);
 const itemToDelete = ref(null);
 const isDeleting = ref(false);
 
-let unsubCategories, unsubStock, unsubUsed, unsubBroken;
+let unsubCategories, unsubStock, unsubBroken;
 
 onMounted(() => {
   currentUserId.value = localStorage.getItem('userId') || 'ADMIN_MANUAL';
@@ -234,11 +243,6 @@ onMounted(() => {
     setTimeout(() => { isLoading.value = false; }, 300);
   });
 
-  const usedQuery = query(collection(db, 'used'), orderBy('timestamp', 'desc'));
-  unsubUsed = onSnapshot(usedQuery, (snapshot) => {
-    usedRecords.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  });
-
   const brokenQuery = query(collection(db, 'broken_stock'), orderBy('timestamp', 'desc'));
   unsubBroken = onSnapshot(brokenQuery, (snapshot) => {
     brokenRecords.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -248,19 +252,28 @@ onMounted(() => {
 onUnmounted(() => {
   if (unsubCategories) unsubCategories();
   if (unsubStock) unsubStock();
-  if (unsubUsed) unsubUsed();
   if (unsubBroken) unsubBroken();
 });
 
+// MATH UPDATE: Added Math.max so it absolutely never shows below 0!
 const getAvailableQty = (catId) => {
   const totalIn = stockRecords.value.filter(r => r.categoryId === catId).reduce((sum, r) => sum + (Number(r.qty) || 0), 0);
-  const totalUsed = usedRecords.value.filter(r => r.categoryId === catId).reduce((sum, r) => sum + (Number(r.qty) || 0), 0);
   const totalBroken = brokenRecords.value.filter(r => r.categoryId === catId).reduce((sum, r) => sum + (Number(r.qty) || 0), 0);
   
-  return totalIn - totalUsed - totalBroken;
+  const available = totalIn - totalBroken;
+  return Math.max(0, available); // If math ever goes negative, just return 0!
 };
 
-// Switched to only show 'in' and 'broken'
+// NEW WATCHER: Instantly clears selection if you switch to "Remove Stock" and the item is at 0
+watch(txMode, (newMode) => {
+  if (newMode === 'out' && form.value.categoryId) {
+    if (getAvailableQty(form.value.categoryId) === 0) {
+      form.value.categoryId = ''; // Reset selection instantly
+      form.value.qty = 1;
+    }
+  }
+});
+
 const currentTableData = computed(() => {
   if (activeTableTab.value === 'in') return stockRecords.value;
   return brokenRecords.value;
@@ -288,8 +301,13 @@ const saveTransaction = async () => {
     return;
   }
 
+  // Extra safety layer!
   if (txMode.value === 'out') {
     const available = getAvailableQty(form.value.categoryId);
+    if (available === 0) {
+      showNotification(`Error: That item is completely out of stock!`, 'error');
+      return;
+    }
     if (form.value.qty > available) {
       showNotification(`Error: Only ${available} available in stock!`, 'error');
       return;
@@ -297,8 +315,6 @@ const saveTransaction = async () => {
   }
 
   isSaving.value = true;
-  
-  // Cleaned up logic: 'in' saves to stock, 'out' automatically saves to broken_stock
   const collectionName = txMode.value === 'in' ? 'stock' : 'broken_stock';
 
   try {
@@ -345,7 +361,6 @@ const confirmDelete = async () => {
   if (!itemToDelete.value) return;
   isDeleting.value = true;
   
-  // Cleaned up delete logic: matches the two active tabs
   const collectionName = activeTableTab.value === 'in' ? 'stock' : 'broken_stock';
 
   try {
