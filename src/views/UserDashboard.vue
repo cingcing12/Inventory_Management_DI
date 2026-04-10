@@ -218,7 +218,7 @@ const sendRequestToAdmin = async () => {
     const cat = categories.value.find(c => c.id === form.value.categoryId);
     const categoryName = cat ? cat.name : 'Unknown Item';
 
-    const res = await axios.post('https://tiktok-video-downloader-oben.onrender.com/api/request-permission', {
+    const res = await axios.post('https://inventory-management-di-gayv.onrender.com/api/request-permission', {
       userId: currentUserId.value,
       userName: currentUserName.value,
       categoryName: categoryName,
